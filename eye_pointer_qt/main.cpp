@@ -2,15 +2,15 @@
 #include <opencv2/highgui/highgui.hpp>
 
 int main() {
+    const char * winName = "Image";
+    CvCapture* c = cvCreateCameraCapture(0);
 
-    // read an image
-    cv::Mat image= cv::imread("img.jpg");
-    // create image window named "My Image"
-    cv::namedWindow("My Image");
-    // show the image on window
-    cv::imshow("My Image", image);
-    // wait key for 5000 ms
-    cv::waitKey(5000);
+
+    cv::Mat image = cv::imread("bleeding.jpg");
+    cv::flip(image, image, 1);
+    cv::namedWindow(winName);
+    cv::imshow(winName, image);
+    cv::waitKey(0);
 
     return 1;
 }
