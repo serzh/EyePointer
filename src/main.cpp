@@ -67,8 +67,9 @@ int main(int argc, char **argv) {
 
 		int i;
 		for (i = 0; i < circles->total; i++) {
-			float* p = (float*) cvGetSeqElem(circles, i);
-			cvCircle(curr_gray, cvPoint(cvRound(p[0]), cvRound(p[1])), cvRound(p[2]), CV_RGB(255, 0, 0), 3, 8, 0);
+            //float* p = (float*) cvGetSeqElem(circles, i);
+            //cvCircle(curr_gray, cvPoint(cvRound(p[0]), cvRound(p[1])), cvRound(p[2]), CV_RGB(255, 0, 0), 3, 8, 0);
+
 		}
 
 		cvShowImage(WINDOW_NAME, diff);
