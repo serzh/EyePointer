@@ -1,1 +1,3 @@
-*.swp
+# Qt project files
+*.pro
+*.pro.user
