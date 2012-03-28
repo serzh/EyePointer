@@ -6,8 +6,8 @@
 #include <vector>
 
 #define WINDOW_NAME "eye pointer"
-#define FACE_CASCADE_FILE "../haarcascades/haarcascade_frontalface_alt.xml"
-#define EYE_CASCADE_FILE "../haarcascades/haarcascade_mcs_eyepair_big.xml"
+#define FACE_CASCADE_FILE "haarcascades/haarcascade_frontalface_alt.xml"
+#define EYE_CASCADE_FILE "haarcascades/haarcascade_mcs_eyepair_big.xml"
 
 int main() {
     cv::VideoCapture camera(0);
