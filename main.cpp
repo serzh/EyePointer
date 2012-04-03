@@ -10,6 +10,63 @@
 #define FACE_SEARCH_WIDTH 160
 #define FACE_SEARCH_HEIGHT 120
 
+void smoothHist(std::vector<int> & hist, int n) {
+	if (n <= 0)
+		return;
+
+	std::vector<int> smooth;
+	smooth.resize(hist.size());
+	while (n) {
+		for (int i = 1; i < hist.size() - 1; i++) {
+			smooth[i] = hist[i-1] / 4 + hist[i+1] / 4 + hist[i] / 2;
+		}
+		hist = smooth;
+		n--;
+	}
+}
+
+cv::Mat rectSubImg(cv::Mat src, cv::Rect rect) {
+	return src
+		.rowRange(cv::Range(rect.y, rect.y + rect.height))
+		.colRange(cv::Range(rect.x, rect.x + rect.width));
+}
+
+void imgHist(cv::Mat img, std::vector<int> & hHist, std::vector<int> & vHist) {
+	cv::Mat grayImg;
+	cv::cvtColor(img, grayImg, CV_BGR2GRAY);
+
+	vHist.clear();
+	hHist.clear();
+
+	vHist.resize(grayImg.rows);
+	hHist.resize(grayImg.cols);
+
+	for (int r = 0; r < grayImg.rows; r++) {
+		for (int c = 0; c < grayImg.cols; c++) {
+			vHist[r] += grayImg.at<unsigned char>(r, c);
+			hHist[c] += grayImg.at<unsigned char>(r, c);
+		}
+	}
+}
+
+void splitEyeRect(cv::Rect eyes, cv::Rect & left, cv::Rect & right) {
+	int vTrim = eyes.height / 5, hTrim = eyes.width / 10;
+	eyes.y += vTrim;
+	eyes.height -= vTrim * 2;
+
+	left = eyes;
+	left.width /= 2;
+
+	right = left;
+	right.x += left.width;
+
+	right.x += hTrim;
+
+	left.width -= hTrim;
+	right.width -= hTrim;
+
+}
+
 int main()
 {
 	cv::VideoCapture camera(0);
@@ -23,10 +80,9 @@ int main()
 
 	cv::Mat frame, image, faceImage, eyeImage;
 	cv::namedWindow( WINDOW_NAME, 1 );
-	cv::namedWindow( "eyes", 1 );
 	std::vector<cv::Rect> objects;
-	std::vector<int> vHist, hHist, hHistSmooth, vHistSmooth;
-	cv::Rect faceRect, eyeRect;
+	std::vector<int> vHist, hHist;
+	cv::Rect faceRect, eyeRect, leftEye, rightEye;
 	float faceModX, faceModY, eyeModX, eyeModY;
 	int eyeCut;
 
@@ -52,9 +108,7 @@ int main()
 
 			cv::rectangle(frame, faceRect, CV_RGB(255, 0, 0));
 
-			faceImage = frame
-				.rowRange(cv::Range(faceRect.y, faceRect.y + faceRect.height))
-				.colRange(cv::Range(faceRect.x, faceRect.x + faceRect.width));
+			faceImage = rectSubImg(frame, faceRect);
 
 			cv::resize(faceImage, faceImage, cv::Size(faceRect.width / 2, faceRect.height / 2));
 			eyeCascade.detectMultiScale(faceImage, objects);
@@ -71,70 +125,40 @@ int main()
 				eyeRect.x += faceRect.x;
 				eyeRect.y += faceRect.y;
 
-				eyeCut = eyeRect.height / 5;
-				eyeRect.y += eyeCut;
-				eyeRect.height -= eyeCut * 2;		
+				splitEyeRect(eyeRect, leftEye, rightEye);
 
-				cv::rectangle(frame, eyeRect, CV_RGB(0, 255, 0));
+				cv::rectangle(frame, leftEye, CV_RGB(255, 255, 0));
+				cv::rectangle(frame, rightEye, CV_RGB(255, 255, 0));
 
-				eyeImage = frame	
-					.rowRange(cv::Range(eyeRect.y, eyeRect.y + eyeRect.height))
-					.colRange(cv::Range(eyeRect.x, eyeRect.x + eyeRect.width));
-				cv::cvtColor(eyeImage, eyeImage, CV_BGR2GRAY);
+				eyeImage = rectSubImg(frame, eyeRect);
+				imgHist(eyeImage, hHist, vHist);
+				smoothHist(vHist, 100);
+				smoothHist(hHist, 100);
 
-				vHist.clear();
-				hHist.clear();
-				vHistSmooth.clear();
-				hHistSmooth.clear();
-
-				vHist.resize(eyeImage.rows);
-				hHist.resize(eyeImage.cols);
-				vHistSmooth.resize(eyeImage.rows);
-				hHistSmooth.resize(eyeImage.cols);
-
-				for (int r = 0; r < eyeImage.rows; r++) {
-					for (int c = 0; c < eyeImage.cols; c++) {
-						vHist[r] += eyeImage.at<unsigned char>(r, c);
-						hHist[c] += eyeImage.at<unsigned char>(r, c);
-					}
-				}
-
-				for (int n = 0; n < 100; n ++) {
-					for (int i = 1; i < hHist.size() - 1; i++) {
-						hHistSmooth[i] = hHist[i-1] / 4 + hHist[i+1] / 4 + hHist[i] / 2;
-					}
-					for (int i = 1; i < vHist.size() - 1; i++) {
-						vHistSmooth[i] = vHist[i-1] / 4 + vHist[i+1] / 4 + vHist[i] / 2;
-					}
-					vHist = vHistSmooth;
-					hHist = hHistSmooth;
-				}
-
-				for (int i = 1; i < vHistSmooth.size() - 1; i++) {
-					cv::line(frame,
-							cv::Point(eyeRect.x + eyeRect.width, eyeRect.y + i),
-							cv::Point(eyeRect.x + eyeRect.width + vHistSmooth[i]/200, eyeRect.y + i),
-							CV_RGB(255, 0, 0));
-					if (vHistSmooth[i] >= vHistSmooth[i-1] && vHistSmooth[i] >= vHistSmooth[i+1]) {
-						cv::line(frame,
-								cv::Point(eyeRect.x, eyeRect.y + i),
-								cv::Point(eyeRect.x + eyeRect.width, eyeRect.y + i),
-								CV_RGB(0, 255, 0));
-					}
-				}
-				for (int i = 1; i < hHistSmooth.size() - 1; i++) {
-					cv::line(frame,
-							cv::Point(eyeRect.x + i, eyeRect.y),
-							cv::Point(eyeRect.x + i, eyeRect.y - hHistSmooth[i]/50),
-							CV_RGB(255, 0, 0));
-					if (hHistSmooth[i] <= hHistSmooth[i-1] && hHistSmooth[i] <= hHistSmooth[i+1]) {
-						cv::line(frame,
-								cv::Point(eyeRect.x + i, eyeRect.y),
-								cv::Point(eyeRect.x + i, eyeRect.y + eyeRect.height),
-								CV_RGB(0, 255, 0));
-					}
-				}
-				cv::imshow("eyes", eyeImage);
+				//for (int i = 1; i < vHist.size() - 1; i++) {
+				//	cv::line(frame,
+				//			cv::Point(eyeRect.x + eyeRect.width, eyeRect.y + i),
+				//			cv::Point(eyeRect.x + eyeRect.width + vHist[i]/200, eyeRect.y + i),
+				//			CV_RGB(255, 0, 0));
+				//	if (vHist[i] >= vHist[i-1] && vHist[i] >= vHist[i+1]) {
+				//		cv::line(frame,
+				//				cv::Point(eyeRect.x, eyeRect.y + i),
+				//				cv::Point(eyeRect.x + eyeRect.width, eyeRect.y + i),
+				//				CV_RGB(0, 255, 0));
+				//	}
+				//}
+				//for (int i = 1; i < hHist.size() - 1; i++) {
+				//	cv::line(frame,
+				//			cv::Point(eyeRect.x + i, eyeRect.y),
+				//			cv::Point(eyeRect.x + i, eyeRect.y - hHist[i]/50),
+				//			CV_RGB(255, 0, 0));
+				//	if (hHist[i] <= hHist[i-1] && hHist[i] <= hHist[i+1]) {
+				//		cv::line(frame,
+				//				cv::Point(eyeRect.x + i, eyeRect.y),
+				//				cv::Point(eyeRect.x + i, eyeRect.y + eyeRect.height),
+				//				CV_RGB(0, 255, 0));
+				//	}
+				//}
 			}
 		}
 		cv::imshow( WINDOW_NAME, frame);
