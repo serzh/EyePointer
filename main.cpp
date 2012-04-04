@@ -110,8 +110,7 @@ void splitEyeRect(cv::Rect eyes, cv::Rect & left, cv::Rect & right) {
 
 }
 
-int main()
-{
+int main() {
 	cv::VideoCapture camera(0);
 	assert( camera.isOpened() );
 
@@ -133,15 +132,13 @@ int main()
 	faceModX = frame.cols / FACE_SEARCH_WIDTH;
 	faceModY = frame.rows / FACE_SEARCH_HEIGHT;
 
-	do
-	{
+	do {
 		camera >> frame;
 
 		cv::resize(frame, image, cv::Size(FACE_SEARCH_WIDTH, FACE_SEARCH_HEIGHT));
 		faceCascade.detectMultiScale(image, objects);
 
-		if ( objects.size() )
-		{
+		if ( objects.size() ) {
 			faceRect = objects[0];
 
 			faceRect.x *= faceModX;
@@ -156,8 +153,7 @@ int main()
 			cv::resize(faceImage, faceImage, cv::Size(faceRect.width / 2, faceRect.height / 2));
 			eyeCascade.detectMultiScale(faceImage, objects);
 
-			if ( objects.size() )
-			{
+			if ( objects.size() ) {
 				eyeRect = objects[0];
 
 				eyeRect.x *= 2;
@@ -189,6 +185,42 @@ int main()
 
 				drawHist(frame, leftHorizHist, cv::Point(leftEye.x, leftEye.y), RIGHT, UP, 100);
 				drawHist(frame, leftVertHist, cv::Point(leftEye.x, leftEye.y), DOWN, LEFT, 100);
+
+				for(int i = 1; i < rightHorizHist.size() - 1; i ++) {
+					if (rightHorizHist[i] <= rightHorizHist[i-1] && rightHorizHist[i] <= rightHorizHist[i+1]) {
+						cv::line(frame,
+								cv::Point(rightEye.x + i, rightEye.y),
+								cv::Point(rightEye.x + i, rightEye.y + rightEye.height),
+								CV_RGB(255, 0, 0));
+					}
+				}
+
+				for(int i = 1; i < leftHorizHist.size() - 1; i ++) {
+					if (leftHorizHist[i] <= leftHorizHist[i-1] && leftHorizHist[i] <= leftHorizHist[i+1]) {
+						cv::line(frame,
+								cv::Point(leftEye.x + i, leftEye.y),
+								cv::Point(leftEye.x + i, leftEye.y + leftEye.height),
+								CV_RGB(255, 0, 0));
+					}
+				}
+
+				for(int i = 1; i < rightVertHist.size() - 1; i ++) {
+					if (rightVertHist[i] >= rightVertHist[i-1] && rightVertHist[i] >= rightVertHist[i+1]) {
+						cv::line(frame,
+								cv::Point(rightEye.x, rightEye.y + i),
+								cv::Point(rightEye.x + rightEye.width, rightEye.y + i),
+								CV_RGB(255, 0, 0));
+					}
+				}
+
+				for(int i = 1; i < leftVertHist.size() - 1; i ++) {
+					if (leftVertHist[i] >= leftVertHist[i-1] && leftVertHist[i] >= leftVertHist[i+1]) {
+						cv::line(frame,
+								cv::Point(leftEye.x, leftEye.y + i),
+								cv::Point(leftEye.x + leftEye.width, leftEye.y + i),
+								CV_RGB(255, 0, 0));
+					}
+				}
 			}
 		}
 		cv::imshow( WINDOW_NAME, frame);
