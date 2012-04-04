@@ -10,11 +10,18 @@
 #define FACE_SEARCH_WIDTH 160
 #define FACE_SEARCH_HEIGHT 120
 
-void smoothHist(std::vector<int> & hist, int n) {
+#define UP 0
+#define DOWN 1
+#define LEFT 2
+#define RIGHT 3
+
+typedef std::vector<int> IntVec;
+
+void smoothHist(IntVec & hist, int n) {
 	if (n <= 0)
 		return;
 
-	std::vector<int> smooth;
+	IntVec smooth;
 	smooth.resize(hist.size());
 	while (n) {
 		for (int i = 1; i < hist.size() - 1; i++) {
@@ -31,7 +38,7 @@ cv::Mat rectSubImg(cv::Mat src, cv::Rect rect) {
 		.colRange(cv::Range(rect.x, rect.x + rect.width));
 }
 
-void imgHist(cv::Mat img, std::vector<int> & hHist, std::vector<int> & vHist) {
+void imgHist(cv::Mat img, IntVec & hHist, IntVec & vHist) {
 	cv::Mat grayImg;
 	cv::cvtColor(img, grayImg, CV_BGR2GRAY);
 
@@ -45,6 +52,42 @@ void imgHist(cv::Mat img, std::vector<int> & hHist, std::vector<int> & vHist) {
 		for (int c = 0; c < grayImg.cols; c++) {
 			vHist[r] += grayImg.at<unsigned char>(r, c);
 			hHist[c] += grayImg.at<unsigned char>(r, c);
+		}
+	}
+}
+
+void drawHist(cv::Mat & image, IntVec & hist, cv::Point start, char xDir, char yDir, int scale = 1) {
+	cv::Point end;
+	for (int i = 0; i < hist.size(); i ++) {
+		end = start;
+		switch(yDir) {
+			case UP:
+				end.y -= hist[i] / scale;
+				break;
+			case DOWN:
+				end.y += hist[i] / scale;
+				break;
+			case LEFT:
+				end.x -= hist[i] / scale;
+				break;
+			case RIGHT:
+				end.x += hist[i] / scale;
+				break;
+		}
+		cv::line(image, start, end, CV_RGB(255, 255, 255));
+		switch(xDir) {
+			case UP:
+				start.y --;
+				break;
+			case DOWN:
+				start.y ++;
+				break;
+			case LEFT:
+				start.x --;
+				break;
+			case RIGHT:
+				start.x ++;
+				break;
 		}
 	}
 }
@@ -78,10 +121,10 @@ int main()
 	cv::CascadeClassifier eyeCascade;
 	assert( eyeCascade.load("haarcascades/haarcascade_mcs_eyepair_big.xml") );
 
-	cv::Mat frame, image, faceImage, eyeImage;
+	cv::Mat frame, image, faceImage, eyeImage, rightEyeImage, leftEyeImage;
 	cv::namedWindow( WINDOW_NAME, 1 );
 	std::vector<cv::Rect> objects;
-	std::vector<int> vHist, hHist;
+	IntVec vHist, hHist, rightHorizHist, rightVertHist, leftHorizHist, leftVertHist;
 	cv::Rect faceRect, eyeRect, leftEye, rightEye;
 	float faceModX, faceModY, eyeModX, eyeModY;
 	int eyeCut;
@@ -130,35 +173,22 @@ int main()
 				cv::rectangle(frame, leftEye, CV_RGB(255, 255, 0));
 				cv::rectangle(frame, rightEye, CV_RGB(255, 255, 0));
 
-				eyeImage = rectSubImg(frame, eyeRect);
-				imgHist(eyeImage, hHist, vHist);
-				smoothHist(vHist, 100);
-				smoothHist(hHist, 100);
+				rightEyeImage = rectSubImg(frame, rightEye);
+				leftEyeImage = rectSubImg(frame, leftEye);
 
-				//for (int i = 1; i < vHist.size() - 1; i++) {
-				//	cv::line(frame,
-				//			cv::Point(eyeRect.x + eyeRect.width, eyeRect.y + i),
-				//			cv::Point(eyeRect.x + eyeRect.width + vHist[i]/200, eyeRect.y + i),
-				//			CV_RGB(255, 0, 0));
-				//	if (vHist[i] >= vHist[i-1] && vHist[i] >= vHist[i+1]) {
-				//		cv::line(frame,
-				//				cv::Point(eyeRect.x, eyeRect.y + i),
-				//				cv::Point(eyeRect.x + eyeRect.width, eyeRect.y + i),
-				//				CV_RGB(0, 255, 0));
-				//	}
-				//}
-				//for (int i = 1; i < hHist.size() - 1; i++) {
-				//	cv::line(frame,
-				//			cv::Point(eyeRect.x + i, eyeRect.y),
-				//			cv::Point(eyeRect.x + i, eyeRect.y - hHist[i]/50),
-				//			CV_RGB(255, 0, 0));
-				//	if (hHist[i] <= hHist[i-1] && hHist[i] <= hHist[i+1]) {
-				//		cv::line(frame,
-				//				cv::Point(eyeRect.x + i, eyeRect.y),
-				//				cv::Point(eyeRect.x + i, eyeRect.y + eyeRect.height),
-				//				CV_RGB(0, 255, 0));
-				//	}
-				//}
+				imgHist(rightEyeImage, rightHorizHist, rightVertHist);
+				imgHist(leftEyeImage, leftHorizHist, leftVertHist);
+
+				smoothHist(rightHorizHist, 100);
+				smoothHist(rightVertHist, 100);
+				smoothHist(leftHorizHist, 100);
+				smoothHist(leftVertHist, 100);
+
+				drawHist(frame, rightHorizHist, cv::Point(rightEye.x, rightEye.y), RIGHT, UP, 100);
+				drawHist(frame, rightVertHist, cv::Point(rightEye.x + rightEye.width, rightEye.y), DOWN, RIGHT, 100);
+
+				drawHist(frame, leftHorizHist, cv::Point(leftEye.x, leftEye.y), RIGHT, UP, 100);
+				drawHist(frame, leftVertHist, cv::Point(leftEye.x, leftEye.y), DOWN, LEFT, 100);
 			}
 		}
 		cv::imshow( WINDOW_NAME, frame);
