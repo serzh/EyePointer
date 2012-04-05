@@ -10,6 +10,8 @@ void smoothHist(IntVec & hist, int n) {
 		for (int i = 1; i < hist.size() - 1; i++) {
 			smooth[i] = hist[i-1] / 4 + hist[i+1] / 4 + hist[i] / 2;
 		}
+		smooth[0] = smooth[1];
+		smooth[hist.size() - 1] = smooth[hist.size() - 2];
 		hist = smooth;
 		n--;
 	}
@@ -37,6 +39,10 @@ void imgHist(cv::Mat & img, IntVec & hHist, IntVec & vHist) {
 			hHist[c] += grayImg.at<unsigned char>(r, c);
 		}
 	}
+	vHist[0] = vHist[1];
+	hHist[0] = hHist[1];
+	vHist[vHist.size() - 1] = vHist[vHist.size() - 2];
+	hHist[hHist.size() - 1] = hHist[hHist.size() - 2];
 }
 
 void drawHist(cv::Mat & image, IntVec & hist, cv::Point start, char xDir, char yDir, int scale) {

@@ -68,10 +68,10 @@ int main() {
 				imgHist(rightEyeImage, rightHorizHist, rightVertHist);
 				imgHist(leftEyeImage, leftHorizHist, leftVertHist);
 
-				smoothHist(rightHorizHist, 100);
-				smoothHist(rightVertHist, 100);
-				smoothHist(leftHorizHist, 100);
-				smoothHist(leftVertHist, 100);
+				smoothHist(rightHorizHist, 50);
+				smoothHist(rightVertHist, 50);
+				smoothHist(leftHorizHist, 50);
+				smoothHist(leftVertHist, 50);
 
 				drawHist(frame, rightHorizHist, cv::Point(rightEye.x, rightEye.y), RIGHT, UP, 100);
 				drawHist(frame, rightVertHist, cv::Point(rightEye.x + rightEye.width, rightEye.y), DOWN, RIGHT, 100);
@@ -100,7 +100,7 @@ int main() {
 				}
 
 				for(int i = 1; i < rightVertHist.size() - 1; i ++) {
-					if (rightVertHist[i] >= rightVertHist[i-1] && rightVertHist[i] >= rightVertHist[i+1]) {
+					if (rightVertHist[i] <= rightVertHist[i-1] && rightVertHist[i] <= rightVertHist[i+1]) {
 						cv::line(frame,
 								cv::Point(rightEye.x, rightEye.y + i),
 								cv::Point(rightEye.x + rightEye.width, rightEye.y + i),
@@ -109,7 +109,7 @@ int main() {
 				}
 
 				for(int i = 1; i < leftVertHist.size() - 1; i ++) {
-					if (leftVertHist[i] >= leftVertHist[i-1] && leftVertHist[i] >= leftVertHist[i+1]) {
+					if (leftVertHist[i] <= leftVertHist[i-1] && leftVertHist[i] <= leftVertHist[i+1]) {
 						cv::line(frame,
 								cv::Point(leftEye.x, leftEye.y + i),
 								cv::Point(leftEye.x + leftEye.width, leftEye.y + i),
