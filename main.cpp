@@ -1,5 +1,6 @@
 #include "helpers.h"
 #define WINDOW_NAME "eye pointer"
+#define WINDOW_RIGHT_EYE "Right eye"
 #define FACE_SEARCH_WIDTH 160
 #define FACE_SEARCH_HEIGHT 120
 
@@ -65,57 +66,12 @@ int main() {
 				rectSubImg(frame, rightEyeImage, rightEye);
 				rectSubImg(frame, leftEyeImage, leftEye);
 
-				imgHist(rightEyeImage, rightHorizHist, rightVertHist);
-				imgHist(leftEyeImage, leftHorizHist, leftVertHist);
+				cv::cvtColor(rightEyeImage, rightEyeImage, CV_BGR2GRAY);
 
-				smoothHist(rightHorizHist, 50);
-				smoothHist(rightVertHist, 50);
-				smoothHist(leftHorizHist, 50);
-				smoothHist(leftVertHist, 50);
+				cv::equalizeHist(rightEyeImage, rightEyeImage);
+				
+				cv::imshow( WINDOW_RIGHT_EYE, rightEyeImage);
 
-				drawHist(frame, rightHorizHist, cv::Point(rightEye.x, rightEye.y), RIGHT, UP, 50);
-				drawHist(frame, rightVertHist, cv::Point(rightEye.x + rightEye.width, rightEye.y), DOWN, RIGHT, 50);
-
-				drawHist(frame, leftHorizHist, cv::Point(leftEye.x, leftEye.y), RIGHT, UP, 50);
-				drawHist(frame, leftVertHist, cv::Point(leftEye.x, leftEye.y), DOWN, LEFT, 50);
-
-
-				//FIXME move to functions
-				for(int i = 1; i < rightHorizHist.size() - 1; i ++) {
-					if (rightHorizHist[i] <= rightHorizHist[i-1] && rightHorizHist[i] <= rightHorizHist[i+1]) {
-						cv::line(frame,
-								cv::Point(rightEye.x + i, rightEye.y),
-								cv::Point(rightEye.x + i, rightEye.y + rightEye.height),
-								CV_RGB(255, 0, 0));
-					}
-				}
-
-				for(int i = 1; i < leftHorizHist.size() - 1; i ++) {
-					if (leftHorizHist[i] <= leftHorizHist[i-1] && leftHorizHist[i] <= leftHorizHist[i+1]) {
-						cv::line(frame,
-								cv::Point(leftEye.x + i, leftEye.y),
-								cv::Point(leftEye.x + i, leftEye.y + leftEye.height),
-								CV_RGB(255, 0, 0));
-					}
-				}
-
-				for(int i = 1; i < rightVertHist.size() - 1; i ++) {
-					if (rightVertHist[i] <= rightVertHist[i-1] && rightVertHist[i] <= rightVertHist[i+1]) {
-						cv::line(frame,
-								cv::Point(rightEye.x, rightEye.y + i),
-								cv::Point(rightEye.x + rightEye.width, rightEye.y + i),
-								CV_RGB(255, 0, 0));
-					}
-				}
-
-				for(int i = 1; i < leftVertHist.size() - 1; i ++) {
-					if (leftVertHist[i] <= leftVertHist[i-1] && leftVertHist[i] <= leftVertHist[i+1]) {
-						cv::line(frame,
-								cv::Point(leftEye.x, leftEye.y + i),
-								cv::Point(leftEye.x + leftEye.width, leftEye.y + i),
-								CV_RGB(255, 0, 0));
-					}
-				}
 			}
 		}
 		cv::imshow( WINDOW_NAME, frame);
