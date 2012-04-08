@@ -26,6 +26,7 @@ void rectSubImg(cv::Mat & src, cv::Mat & dest, cv::Rect & rect) {
 void imgHist(cv::Mat & img, IntVec & hHist, IntVec & vHist) {
 	cv::Mat grayImg;
 	cv::cvtColor(img, grayImg, CV_BGR2GRAY);
+	cv::equalizeHist(grayImg, grayImg);
 
 	vHist.clear();
 	hHist.clear();
