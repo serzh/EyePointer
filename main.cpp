@@ -38,6 +38,8 @@ int main() {
 
 	do {
 		camera >> frame;
+		//cv::cvtColor(frame, frame, CV_BGR2GRAY);
+		//cv::equalizeHist(frame, frame);
 
 		cv::resize(frame, image, cv::Size(FACE_SEARCH_WIDTH, FACE_SEARCH_HEIGHT));
 		faceCascade.detectMultiScale(image, objects);
@@ -79,18 +81,21 @@ int main() {
 				cv::cvtColor(rightEyeImage, rightEyeImage, CV_BGR2GRAY);
 
 				cv::equalizeHist(rightEyeImage, rightEyeImage);
+
 				cv::threshold(rightEyeImage, rightEyeImage, threshold, 255, CV_THRESH_BINARY_INV);	
-				
+
 				iplimg = rightEyeImage;
 				IplImage *labels = cvCreateImage(rightEyeImage.size(), IPL_DEPTH_LABEL, 1);
 				result = cvb::cvLabel(&iplimg, labels, blobs);
 
 				largestL = cvb::cvGreaterBlob(blobs);
 				largest = blobs[largestL];
-				cv::rectangle(frame, cv::Point(eyeRect.x + largest->minx, eyeRect.y + largest->miny),
-					cv::Point(eyeRect.x + largest->maxx, eyeRect.y + largest->maxy),
-					CV_RGB(0,255,0));
-
+				cv::rectangle(frame, cv::Point(rightEye.x + largest->minx, rightEye.y + largest->miny),
+					cv::Point(rightEye.x + largest->maxx, rightEye.y + largest->maxy),
+					CV_RGB(0,0,0));
+				int sx = (rightEye.x + largest->minx + rightEye.x + largest->maxx) / 2;
+				int sy = (rightEye.y + largest->miny + rightEye.y + largest->maxy) / 2;
+				cv::circle(frame, cv::Point(sx, sy), 3, CV_RGB(184, 46, 0));
 				cv::imshow( WINDOW_RIGHT_EYE, rightEyeImage);
 			}
 		}
