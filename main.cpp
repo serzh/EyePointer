@@ -15,9 +15,10 @@ int main() {
 	cv::CascadeClassifier eyeCascade;
 	assert( eyeCascade.load("haarcascades/haarcascade_mcs_eyepair_big.xml") );
 
+	char key;
 	cv::Mat frame, image, faceImage, eyeImage, rightEyeImage, leftEyeImage;
 	cv::namedWindow( WINDOW_NAME, 1 );
-	int threshold = 10;
+	int threshold = 20;
 	cv::createTrackbar("threshold", WINDOW_NAME, &threshold, 255);
 	std::vector<cv::Rect> objects;
 	IntVec vHist, hHist, rightHorizHist, rightVertHist, leftHorizHist, leftVertHist;
@@ -80,8 +81,8 @@ int main() {
 
 				splitEyeRect(eyeRect, leftEye, rightEye);
 
-				cv::rectangle(frame, leftEye, CV_RGB(255, 255, 0));
-				cv::rectangle(frame, rightEye, CV_RGB(255, 255, 0));
+				//cv::rectangle(frame, leftEye, CV_RGB(255, 255, 0));
+				//cv::rectangle(frame, rightEye, CV_RGB(255, 255, 0));
 
 				rectSubImg(frame, rightEyeImage, rightEye);
 				rectSubImg(frame, leftEyeImage, leftEye);
@@ -142,21 +143,31 @@ int main() {
 					ry = mean(rys, s);
 					lx = mean(lxs, s);
 					ly = mean(lys, s);
+
 					zeros(rxs, s);
 					zeros(rys, s);
 					zeros(lxs, s);
 					zeros(lys, s);
-					
 				}
+
 				cv::circle(frame, cv::Point(rx, ry), 3, CV_RGB(184, 46, 0));
 				cv::circle(frame, cv::Point(lx, ly), 3, CV_RGB(184, 46, 0));
+
 				counter++;
+
 				cv::imshow( WINDOW_RIGHT_EYE, leftEyeImage);
 			}
 		}
 		cv::imshow( WINDOW_NAME, frame);
 
-	} while (cv::waitKey(10) != 27);
+		key = cv::waitKey(1);
+		if (key == ' ') {
+			while (true) {
+				key = cv::waitKey();
+				if (key == ' ') break;
+			}
+		}
+	} while (key != 27);
 
 	return 0;
 }
