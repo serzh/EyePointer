@@ -98,3 +98,39 @@ void splitEyeRect(cv::Rect & eyes, cv::Rect & left, cv::Rect & right) {
 	right.width -= hTrim;
 
 }
+
+void findLargestBlob(cv::Mat & src, cv::Rect & largest) {
+
+	cvb::CvBlobs blobs;
+	cvb::CvLabel largestL;
+	cvb::CvBlob *blob;
+
+	IplImage iplimg = src;
+	IplImage *labels = cvCreateImage(src.size(), IPL_DEPTH_LABEL, 1);
+	unsigned int result = cvb::cvLabel(&iplimg, labels, blobs);
+
+	largestL = cvb::cvGreaterBlob(blobs);
+	blob = blobs[largestL];
+
+	largest = cv::Rect(cv::Point(blob->minx, blob->miny),
+		cv::Point(blob->maxx, blob->maxy));
+
+	cvReleaseImage(&labels);
+}
+int mean(int arr[], int size) {
+
+	int sum = 0;
+	for (int i = 0; i < size; i++) {
+		sum += arr[i];
+		if (!arr[i])
+			size--;
+	}
+
+	return sum / size;
+}
+
+void zeros(int arr[], int size) {
+	for (int i = 0; i < size; i++) {
+		arr[i] = 0;
+	}
+}

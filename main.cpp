@@ -1,5 +1,4 @@
 #include "helpers.h"
-#include <cvblob.h>
 
 #define WINDOW_NAME "eye pointer"
 #define WINDOW_RIGHT_EYE "Right eye"
@@ -18,7 +17,7 @@ int main() {
 
 	cv::Mat frame, image, faceImage, eyeImage, rightEyeImage, leftEyeImage;
 	cv::namedWindow( WINDOW_NAME, 1 );
-	int threshold = 40;
+	int threshold = 10;
 	cv::createTrackbar("threshold", WINDOW_NAME, &threshold, 255);
 	std::vector<cv::Rect> objects;
 	IntVec vHist, hHist, rightHorizHist, rightVertHist, leftHorizHist, leftVertHist;
@@ -30,6 +29,15 @@ int main() {
 	IplImage iplimg;
 	cvb::CvLabel largestL;
 	cvb::CvBlob* largest;
+	cv::Rect rightPupilRect, leftPupilRect;
+	int rx, ry, lx, ly;
+	int counter = 0;
+	int s = 5;
+	int rxs[s], rys[s], lxs[s], lys[s];
+	zeros(rxs, s);
+	zeros(rys, s);
+	zeros(lxs, s);
+	zeros(lys, s);
 
 
 	camera >> frame;
@@ -79,24 +87,68 @@ int main() {
 				rectSubImg(frame, leftEyeImage, leftEye);
 
 				cv::cvtColor(rightEyeImage, rightEyeImage, CV_BGR2GRAY);
+				cv::cvtColor(leftEyeImage, leftEyeImage, CV_BGR2GRAY);
 
 				cv::equalizeHist(rightEyeImage, rightEyeImage);
+				cv::equalizeHist(leftEyeImage, leftEyeImage);
 
 				cv::threshold(rightEyeImage, rightEyeImage, threshold, 255, CV_THRESH_BINARY_INV);	
+				cv::threshold(leftEyeImage, leftEyeImage, threshold, 255, CV_THRESH_BINARY_INV);	
 
-				iplimg = rightEyeImage;
-				IplImage *labels = cvCreateImage(rightEyeImage.size(), IPL_DEPTH_LABEL, 1);
-				result = cvb::cvLabel(&iplimg, labels, blobs);
+				findLargestBlob(rightEyeImage, rightPupilRect);
+				findLargestBlob(leftEyeImage, leftPupilRect);
 
-				largestL = cvb::cvGreaterBlob(blobs);
-				largest = blobs[largestL];
-				cv::rectangle(frame, cv::Point(rightEye.x + largest->minx, rightEye.y + largest->miny),
-					cv::Point(rightEye.x + largest->maxx, rightEye.y + largest->maxy),
+				// iplimg = rightEyeImage;
+				// IplImage *labels = cvCreateImage(rightEyeImage.size(), IPL_DEPTH_LABEL, 1);
+				// result = cvb::cvLabel(&iplimg, labels, blobs);
+
+				// largestL = cvb::cvGreaterBlob(blobs);
+				// largest = blobs[largestL];
+				cv::rectangle(frame, 
+					cv::Point(rightEye.x + rightPupilRect.x, 
+						rightEye.y + rightPupilRect.y),
+					cv::Point(rightEye.x + rightPupilRect.x + rightPupilRect.width, 
+						rightEye.y + rightPupilRect.y + rightPupilRect.height),
 					CV_RGB(0,0,0));
-				int sx = (rightEye.x + largest->minx + rightEye.x + largest->maxx) / 2;
-				int sy = (rightEye.y + largest->miny + rightEye.y + largest->maxy) / 2;
-				cv::circle(frame, cv::Point(sx, sy), 3, CV_RGB(184, 46, 0));
-				cv::imshow( WINDOW_RIGHT_EYE, rightEyeImage);
+
+				if (counter == s) {
+					counter = 0;
+				}
+				
+				rxs[counter] = (rightEye.x + rightPupilRect.x + 
+					rightEye.x + rightPupilRect.x + rightPupilRect.width) / 2;
+				rys[counter] = (rightEye.y + rightPupilRect.y + 
+					rightEye.y + rightPupilRect.y + rightPupilRect.height) / 2;
+
+				cv::circle(frame, cv::Point(rx, ry), 3, CV_RGB(184, 46, 0));
+
+				cv::rectangle(frame, 
+					cv::Point(leftEye.x + leftPupilRect.x, 
+						leftEye.y + leftPupilRect.y),
+					cv::Point(leftEye.x + leftPupilRect.x + leftPupilRect.width, 
+						leftEye.y + leftPupilRect.y + leftPupilRect.height),
+					CV_RGB(0,0,0));
+
+				lxs[counter] = (leftEye.x + leftPupilRect.x + 
+					leftEye.x + leftPupilRect.x + leftPupilRect.width) / 2;
+				lys[counter] = (leftEye.y + leftPupilRect.y + 
+					leftEye.y + leftPupilRect.y + leftPupilRect.height) / 2;
+				
+				if (!(counter % s)) {
+					rx = mean(rxs, s);
+					ry = mean(rys, s);
+					lx = mean(lxs, s);
+					ly = mean(lys, s);
+					zeros(rxs, s);
+					zeros(rys, s);
+					zeros(lxs, s);
+					zeros(lys, s);
+					
+				}
+				cv::circle(frame, cv::Point(rx, ry), 3, CV_RGB(184, 46, 0));
+				cv::circle(frame, cv::Point(lx, ly), 3, CV_RGB(184, 46, 0));
+				counter++;
+				cv::imshow( WINDOW_RIGHT_EYE, leftEyeImage);
 			}
 		}
 		cv::imshow( WINDOW_NAME, frame);
