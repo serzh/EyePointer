@@ -2,8 +2,8 @@
 
 #define WINDOW_NAME "eye pointer"
 #define WINDOW_RIGHT_EYE "Right eye"
-#define FACE_SEARCH_WIDTH 160
-#define FACE_SEARCH_HEIGHT 120
+#define FACE_SEARCH_WIDTH 80
+#define FACE_SEARCH_HEIGHT 60
 
 int main() {
 	cv::VideoCapture camera(0);
@@ -32,7 +32,7 @@ int main() {
 	cv::Rect rightPupilRect, leftPupilRect;
 	int rx, ry, lx, ly;
 	int counter = 0;
-	int s = 5;
+	int s = 4;
 	int rxs[s], rys[s], lxs[s], lys[s];
 	zeros(rxs, s);
 	zeros(rys, s);
@@ -60,7 +60,7 @@ int main() {
 			faceRect.height *= faceModY;
 			faceRect.width *= faceModX;
 
-			cv::rectangle(frame, faceRect, CV_RGB(255, 0, 0));
+			//cv::rectangle(frame, faceRect, CV_RGB(255, 0, 0));
 
 			rectSubImg(frame, faceImage, faceRect);
 
@@ -89,6 +89,9 @@ int main() {
 				cv::cvtColor(rightEyeImage, rightEyeImage, CV_BGR2GRAY);
 				cv::cvtColor(leftEyeImage, leftEyeImage, CV_BGR2GRAY);
 
+				cv::medianBlur(rightEyeImage, rightEyeImage, 7);
+				cv::medianBlur(leftEyeImage, leftEyeImage, 7);
+
 				cv::equalizeHist(rightEyeImage, rightEyeImage);
 				cv::equalizeHist(leftEyeImage, leftEyeImage);
 
@@ -114,7 +117,7 @@ int main() {
 				if (counter == s) {
 					counter = 0;
 				}
-				
+
 				rxs[counter] = (rightEye.x + rightPupilRect.x + 
 					rightEye.x + rightPupilRect.x + rightPupilRect.width) / 2;
 				rys[counter] = (rightEye.y + rightPupilRect.y + 
