@@ -1,1 +1,2 @@
 g++ main.cpp helpers.cpp -o app `pkg-config --cflags --libs opencv cvblob`
+--all-warnings
