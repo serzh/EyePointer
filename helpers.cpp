@@ -134,3 +134,19 @@ void zeros(int arr[], int size) {
 		arr[i] = 0;
 	}
 }
+void movePointer(int xp, int yp) {
+    static Display *display = XOpenDisplay(NULL);
+    static Window root = DefaultRootWindow(display);
+
+	int x, y, tmp;
+	unsigned int tmpmask;
+	Window fromroot, tmpwin;
+
+	XQueryPointer(display, root, &fromroot, &tmpwin, &x, &y, &tmp, &tmp, &tmpmask);
+
+	x += xp;
+	y += yp;
+
+	XWarpPointer(display, None, root, 0, 0, 0, 0, x, y);
+	XFlush(display);
+}

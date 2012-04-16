@@ -33,12 +33,15 @@ int main() {
 	cv::Rect rightPupilRect, leftPupilRect;
 	int rx, ry, lx, ly;
 	int counter = 0;
-	int s = 4;
+	int s = 	2;
 	int rxs[s], rys[s], lxs[s], lys[s];
 	zeros(rxs, s);
 	zeros(rys, s);
 	zeros(lxs, s);
 	zeros(lys, s);
+	cv::Point current, previous;
+	bool init = true;
+	int dx, dy;
 
 
 	camera >> frame;
@@ -61,7 +64,7 @@ int main() {
 			faceRect.height *= faceModY;
 			faceRect.width *= faceModX;
 
-			//cv::rectangle(frame, faceRect, CV_RGB(255, 0, 0));
+			cv::rectangle(frame, faceRect, CV_RGB(255, 0, 0));
 
 			rectSubImg(frame, faceImage, faceRect);
 
@@ -81,8 +84,8 @@ int main() {
 
 				splitEyeRect(eyeRect, leftEye, rightEye);
 
-				//cv::rectangle(frame, leftEye, CV_RGB(255, 255, 0));
-				//cv::rectangle(frame, rightEye, CV_RGB(255, 255, 0));
+				cv::rectangle(frame, leftEye, CV_RGB(255, 255, 0));
+				cv::rectangle(frame, rightEye, CV_RGB(255, 255, 0));
 
 				rectSubImg(frame, rightEyeImage, rightEye);
 				rectSubImg(frame, leftEyeImage, leftEye);
@@ -149,6 +152,22 @@ int main() {
 					zeros(lxs, s);
 					zeros(lys, s);
 				}
+
+				current.x = (rx + lx) / 2;
+				current.y = (ry + ly) / 2;
+				if (init) {
+					previous = current;
+					init = false;
+				}
+
+				dx = current.x - previous.x;
+				dy = current.y - previous.y;
+
+				movePointer(-dx*6, dy*6);
+
+				previous = current;
+
+				cv::circle(frame, current, 3, CV_RGB(255, 255, 0));
 
 				cv::circle(frame, cv::Point(rx, ry), 3, CV_RGB(184, 46, 0));
 				cv::circle(frame, cv::Point(lx, ly), 3, CV_RGB(184, 46, 0));

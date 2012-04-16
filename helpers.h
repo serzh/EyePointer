@@ -7,6 +7,10 @@
 #include <vector>
 #include <iostream>
 
+#include <X11/X.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+
 #define UP 0
 #define DOWN 1
 #define LEFT 2
@@ -22,3 +26,4 @@ void splitEyeRect(cv::Rect & eyes, cv::Rect & left, cv::Rect & right);
 void findLargestBlob(cv::Mat & src, cv::Rect & largest);
 int mean(int arr[], int size);
 void zeros(int arr[], int size);
+void movePointer(int xp, int yp);

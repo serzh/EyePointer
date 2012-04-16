@@ -1,1 +1,1 @@
-g++ main.cpp helpers.cpp -o app `pkg-config --cflags --libs opencv cvblob`
+g++ main.cpp helpers.cpp -o app `pkg-config --cflags --libs opencv cvblob x11`
