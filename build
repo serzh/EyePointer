@@ -1,1 +1,1 @@
-g++ `pkg-config --cflags --libs opencv` main.cpp
+g++ `pkg-config --cflags --libs opencv x11` main.cpp

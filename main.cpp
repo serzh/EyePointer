@@ -8,6 +8,10 @@
 #include <cv.h>
 #include <highgui.h>
 
+#include <X11/X.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+
  const char* WINDOW_NAME = "Find eye";
  const char* WINDOW_TMP = "Template";
  int x = 20;
@@ -20,7 +24,22 @@
 
  	return cropped;
  }
+void movePointer(int xp, int yp) {
+    static Display *display = XOpenDisplay(NULL);
+    static Window root = DefaultRootWindow(display);
 
+	int x, y, tmp;
+	unsigned int tmpmask;
+	Window fromroot, tmpwin;
+
+	XQueryPointer(display, root, &fromroot, &tmpwin, &x, &y, &tmp, &tmp, &tmpmask);
+
+	x += xp;
+	y += yp;
+
+	XWarpPointer(display, None, root, 0, 0, 0, 0, x, y);
+	XFlush(display);
+}
  int main(int argc, char **argv) {
 
  	int s = 0;
@@ -58,6 +77,9 @@
  	float scalex = size.width / nx;
  	float scaley = size.height / ny;
 
+ 	CvPoint current, previous;
+ 	int dx, dy;
+
  	while (true) {
 
  		// Query and resize image from camera
@@ -93,6 +115,7 @@
  		cvMatchTemplate(curr_gray, cropped_l, res, CV_TM_SQDIFF);
  		cvMinMaxLoc(res, &minval, &maxval, &minloc, &maxloc, 0);
 
+
  		CvRect rect = cvRect(minloc.x, minloc.y, cropped_l->width, cropped_l->height);
 
  		cropped_l = crop(curr_gray, rect);
@@ -111,10 +134,22 @@
  			cvPoint(minloc.x + cropped_l->width*scalex, minloc.y + cropped_l->height*scaley),
  			CV_RGB(255, 0, 0), 1, 0, 0);  
 
- 		cvCircle(curr_gray_b, cvPoint(minloc.x + cropped_l->width*scalex/2, minloc.y + cropped_l->height*scaley/2), 3, CV_RGB(255, 255, 255));
+ 		current = cvPoint(minloc.x + cropped_l->width*scalex/2, minloc.y + cropped_l->height*scaley/2);
+ 		if (s == 0) {
+ 			previous = current;
+ 		}
+
+ 		cvCircle(curr_gray_b, current, 3, CV_RGB(255, 255, 255));
+
+ 		dx = current.x - previous.x;
+ 		dy = current.y - previous.y;
+
+ 		movePointer(-dx*5, dy*5);
 
  		cvShowImage(WINDOW_NAME, curr_gray_b);
  		cvShowImage(WINDOW_TMP, cropped_l);
+
+ 		previous = current;
  		cvWaitKey(1);
 
  		s++;
