@@ -41,7 +41,7 @@
  	cvNamedWindow(WINDOW_TMP, CV_WINDOW_AUTOSIZE);
  	cvCreateTrackbar("Eye size",WINDOW_NAME, &x, 20);
  	CvCapture* c = cvCreateCameraCapture(0);
- 	char* filename_l = "haarcascades/haarcascade_lefteye_2splits.xml";
+ 	char* filename_l = "haarcascades/haarcascade_mcs_eyepair_big.xml";
  	char* filename_r = "haarcascades/haarcascade_righteye_2splits.xml";
 
  	// Make all good things for left eye
@@ -53,16 +53,21 @@
  	IplImage* curr = cvQueryFrame(c);
  	CvSize size = cvGetSize(curr);
 
+ 	int nx = 320;
+ 	int ny = 240;
+ 	float scalex = size.width / nx;
+ 	float scaley = size.height / ny;
+
  	while (true) {
 
  		// Query and resize image from camera
  		curr = cvQueryFrame(c);
  		curr_gray_b = cvCreateImage(size, IPL_DEPTH_8U, 1);
  		cvCvtColor(curr, curr_gray_b, CV_RGB2GRAY);
- 		curr_gray = cvCreateImage(cvSize(320, 240), IPL_DEPTH_8U, 1);
+ 		curr_gray = cvCreateImage(cvSize(nx, ny), IPL_DEPTH_8U, 1);
  		cvResize(curr_gray_b, curr_gray);
 
- 		if ((s % 10) == 0) {
+ 		if (s  == 0) {
 
  			// Find the eye
  			seq_l = cvHaarDetectObjects(curr_gray, cascade_l, storage, 1.1, 3, 0, cvSize(x, x));
@@ -88,13 +93,27 @@
  		cvMatchTemplate(curr_gray, cropped_l, res, CV_TM_SQDIFF);
  		cvMinMaxLoc(res, &minval, &maxval, &minloc, &maxloc, 0);
 
+ 		CvRect rect = cvRect(minloc.x, minloc.y, cropped_l->width, cropped_l->height);
+
+ 		cropped_l = crop(curr_gray, rect);
+
+ 		sizeR = cvSize(
+ 			std::abs(curr_gray->width  - cropped_l->width)  + 1,
+ 			std::abs(curr_gray->height - cropped_l->height) + 1
+ 			);
+
 		/* draw area */
- 		cvRectangle(curr_gray,
+		minloc.x *= scalex;
+		minloc.y *= scaley;
+
+ 		cvRectangle(curr_gray_b,
  			cvPoint(minloc.x, minloc.y),
- 			cvPoint(minloc.x + cropped_l->width, minloc.y + cropped_l->height),
+ 			cvPoint(minloc.x + cropped_l->width*scalex, minloc.y + cropped_l->height*scaley),
  			CV_RGB(255, 0, 0), 1, 0, 0);  
 
- 		cvShowImage(WINDOW_NAME, curr_gray);
+ 		cvCircle(curr_gray_b, cvPoint(minloc.x + cropped_l->width*scalex/2, minloc.y + cropped_l->height*scaley/2), 3, CV_RGB(255, 255, 255));
+
+ 		cvShowImage(WINDOW_NAME, curr_gray_b);
  		cvShowImage(WINDOW_TMP, cropped_l);
  		cvWaitKey(1);
 
