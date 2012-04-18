@@ -1,29 +1,25 @@
-/*
- * real.cpp
- *
- *  Created on: Feb 2, 2012
- *      Author: serzh
- */
-#include <stdio.h>
-#include <cv.h>
-#include <highgui.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/objdetect/objdetect.hpp>
+
+#include <vector>
+#include <iostream>
 
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
- const char* WINDOW_NAME = "Find eye";
- const char* WINDOW_TMP = "Template";
- int x = 20;
+#define MAIN_WINDOW "Eyer"
+#define TEMPLATE_WINDOW "Template"
+#define NEW_SIZE_WIDTH 320
+#define NEW_SIZE_HEIGHT 240
 
- IplImage* crop(IplImage* src, CvRect rect) {
- 	IplImage* cropped = cvCreateImage(cvSize(rect.width, rect.height), IPL_DEPTH_8U, 1);
- 	cvSetImageROI(src, rect);
- 	cvCopy(src, cropped);
- 	cvResetImageROI(src);
-
- 	return cropped;
- }
+void crop(cv::Mat & src, cv::Mat & dst, cv::Rect roi) {
+	dst = src.
+		rowRange(roi.y, roi.y + roi.height).
+		colRange(roi.x, roi.x + roi.width);
+}
 void movePointer(int xp, int yp) {
     static Display *display = XOpenDisplay(NULL);
     static Window root = DefaultRootWindow(display);
@@ -40,127 +36,89 @@ void movePointer(int xp, int yp) {
 	XWarpPointer(display, None, root, 0, 0, 0, 0, x, y);
 	XFlush(display);
 }
- int main(int argc, char **argv) {
 
- 	int s = 0;
- 	int i;
- 	CvRect *rt_l;
- 	CvSeq* seq_l;
- 	IplImage* cropped_l;
- 	IplImage* res;
- 	CvSize sizeR;
- 	IplImage* curr_gray_b;
- 	IplImage* curr_gray;
+int main(int argc, char **argv) {
 
+	int counter = 0;
+	cv::Rect eyePairRect;
+	cv::Mat frame, miniFrame, eyePair, result;
+	cv::CascadeClassifier eyesCascade("haarcascades/haarcascade_mcs_eyepair_big.xml");
+	std::vector<cv::Rect> eyePairs;
+	double minval, maxval;
+	int dx, dy;
+	cv::Point minloc, maxloc, current, previous;
 
- 	CvPoint minloc, maxloc;
- 	double minval, maxval;
+	cv::VideoCapture camera(0);
+	assert( camera.isOpened() );
 
- 	cvNamedWindow(WINDOW_NAME, CV_WINDOW_AUTOSIZE);
- 	cvNamedWindow(WINDOW_TMP, CV_WINDOW_AUTOSIZE);
- 	cvCreateTrackbar("Eye size",WINDOW_NAME, &x, 20);
- 	CvCapture* c = cvCreateCameraCapture(0);
- 	char* filename_l = "haarcascades/haarcascade_mcs_eyepair_big.xml";
- 	char* filename_r = "haarcascades/haarcascade_righteye_2splits.xml";
+	cv::namedWindow(MAIN_WINDOW, 1);
+	cv::namedWindow(TEMPLATE_WINDOW, 1);
 
- 	// Make all good things for left eye
- 	CvHaarClassifierCascade* cascade_l = 
- 	(CvHaarClassifierCascade*) cvLoad(filename_l, 0, 0, 0);
+	camera >> frame;
 
- 	CvMemStorage* storage = cvCreateMemStorage(0);
+	float scalex = frame.size().width / NEW_SIZE_WIDTH;
+	float scaley = frame.size().height / NEW_SIZE_HEIGHT;
 
- 	IplImage* curr = cvQueryFrame(c);
- 	CvSize size = cvGetSize(curr);
+	do {
 
- 	int nx = 320;
- 	int ny = 240;
- 	float scalex = size.width / nx;
- 	float scaley = size.height / ny;
+		camera >> frame;
 
- 	CvPoint current, previous;
- 	int dx, dy;
+		cv::resize(frame, miniFrame, cv::Size(NEW_SIZE_WIDTH, NEW_SIZE_HEIGHT));
+		cv::cvtColor(miniFrame, miniFrame, CV_RGB2GRAY);
+		cv::equalizeHist(miniFrame, miniFrame);
 
- 	while (true) {
+		if (!(counter % 50)) {
 
- 		// Query and resize image from camera
- 		curr = cvQueryFrame(c);
- 		curr_gray_b = cvCreateImage(size, IPL_DEPTH_8U, 1);
- 		cvCvtColor(curr, curr_gray_b, CV_RGB2GRAY);
- 		curr_gray = cvCreateImage(cvSize(nx, ny), IPL_DEPTH_8U, 1);
- 		cvResize(curr_gray_b, curr_gray);
+			eyesCascade.detectMultiScale(miniFrame, eyePairs);
 
- 		if (s  == 0) {
+			if (eyePairs.size()) 
+				eyePairRect = eyePairs[0];
+			else continue;
 
- 			// Find the eye
- 			seq_l = cvHaarDetectObjects(curr_gray, cascade_l, storage, 1.1, 3, 0, cvSize(x, x));
+		} else {
 
- 			for (i = 0; i < seq_l->total; i++) {
- 				rt_l = (CvRect*) cvGetSeqElem(seq_l, 0);
- 			}
+			cv::matchTemplate(miniFrame, eyePair, result, CV_TM_SQDIFF);
 
- 			// And crop it to template
- 			cropped_l = crop(curr_gray, *rt_l);
+			cv::minMaxLoc(result, &minval, &maxval, &minloc, &maxloc, cv::Mat());
 
- 			sizeR = cvSize(
- 				std::abs(curr_gray->width  - cropped_l->width)  + 1,
- 				std::abs(curr_gray->height - cropped_l->height) + 1
- 				);
+			eyePairRect.x = minloc.x;
+			eyePairRect.y = minloc.y;
+			eyePairRect.width = eyePair.size().width;
+			eyePairRect.height = eyePair.size().height;
 
+		}
 
+		crop(miniFrame, eyePair, eyePairRect);
 
- 		}
+		eyePairRect.x *= scalex;
+		eyePairRect.y *= scaley;
+		eyePairRect.width *= scalex;
+		eyePairRect.height *= scaley;
+		
+		cv::rectangle(frame, cv::Point(eyePairRect.x, eyePairRect.y),
+		 		cv::Point(eyePairRect.x + eyePairRect.width, eyePairRect.y + eyePairRect.height),
+				CV_RGB(255, 0, 255));
 
-  		/* create new image for template matching computation */
- 		res = cvCreateImage(sizeR, IPL_DEPTH_32F, 1);
- 		cvMatchTemplate(curr_gray, cropped_l, res, CV_TM_SQDIFF);
- 		cvMinMaxLoc(res, &minval, &maxval, &minloc, &maxloc, 0);
+		current = cv::Point(eyePairRect.x + eyePairRect.width/2, eyePairRect.y + eyePairRect.height/2);
 
+		if (!(counter % 50)) {
+			previous = current;
+		}
 
- 		CvRect rect = cvRect(minloc.x, minloc.y, cropped_l->width, cropped_l->height);
+		cv::circle(frame, current, 3, CV_RGB(128, 128, 255));
 
- 		cropped_l = crop(curr_gray, rect);
+		dx = current.x - previous.x;
+		dy = current.y - previous.y;
 
- 		sizeR = cvSize(
- 			std::abs(curr_gray->width  - cropped_l->width)  + 1,
- 			std::abs(curr_gray->height - cropped_l->height) + 1
- 			);
+		movePointer(-dx*9, dy*8);
 
-		/* draw area */
-		minloc.x *= scalex;
-		minloc.y *= scaley;
+		cv::imshow(MAIN_WINDOW, frame);
+		cv::imshow(TEMPLATE_WINDOW, eyePair);
 
- 		cvRectangle(curr_gray_b,
- 			cvPoint(minloc.x, minloc.y),
- 			cvPoint(minloc.x + cropped_l->width*scalex, minloc.y + cropped_l->height*scaley),
- 			CV_RGB(255, 0, 0), 1, 0, 0);  
+		previous = current;
 
- 		current = cvPoint(minloc.x + cropped_l->width*scalex/2, minloc.y + cropped_l->height*scaley/2);
- 		if (s == 0) {
- 			previous = current;
- 		}
+		counter++;
 
- 		cvCircle(curr_gray_b, current, 3, CV_RGB(255, 255, 255));
+	} while (cv::waitKey(1) != 27);
 
- 		dx = current.x - previous.x;
- 		dy = current.y - previous.y;
-
- 		movePointer(-dx*5, dy*5);
-
- 		cvShowImage(WINDOW_NAME, curr_gray_b);
- 		cvShowImage(WINDOW_TMP, cropped_l);
-
- 		previous = current;
- 		cvWaitKey(1);
-
- 		s++;
- 	}
-
- 	cvReleaseImage(&curr_gray);
- 	cvReleaseImage(&curr_gray_b);
- 	cvReleaseImage(&res);
- 	cvReleaseImage(&cropped_l);
-
- 	cvReleaseCapture(&c);
- 	cvDestroyWindow("Find eye");
- }
-
+}
